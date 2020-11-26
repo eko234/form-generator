@@ -66,11 +66,15 @@ end.
                  title
                  fields ))
 
-
 (define (field-position o)
-  "TODO")
+  (~a #:separator "\n"
+   (format "Left = ~a" 100)
+   (format "Top = ~a" (* o 100))))
+
 (define (label-position o)
-  "TODO")
+  (~a #:separator "\n"
+   (format "Left = ~a" 100)
+   (format "Top = ~a" (* o 100))))
 
 (define (field-properties field)
   "TODO")
@@ -130,5 +134,5 @@ end.
         (format template_ (apply ~a #:separator "\n" `(,@(map field->code fields))) "//write functions here nigger")]
     [_ (raise "wrong pattern boy")]))
 
-;(pretty-display (field->code (car (<form>-fields informacion-para-efectuar-liquidacion))))
+; (pretty-display (field->code (car (<form>-fields informacion-para-efectuar-liquidacion))))
 ; (pretty-display (mk-file-code informacion-para-efectuar-liquidacion))
