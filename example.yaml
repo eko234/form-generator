@@ -1,4 +1,14 @@
+# options can be a list of strings or a query represented as a string
+# field key must be named after the data field of a datasource
+forms:
+    -empresas/establecimientos_comerciales:
+    unit-name: "Nigger"
+    title: "negratillos"
+    fields:
+      -liq-gen: {label: "ingresos_brutos", tipo: "cash", options: "select * from x"}
+      
 empresa/establecimiento_comercial:
+    nombre: ""
   -nit: {}
   -nombre_del_establecimiento: {}
   -direccion: {}

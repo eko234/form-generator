@@ -7,7 +7,7 @@
 
 ; <UNITNAME> must be replaced before using the returned template
 
-(define file-design-template
+(define file-design-template ;2 placeholders
 "
 inheritedTFRM<UNITNAME>
   clientHeight = 600
@@ -26,7 +26,7 @@ inheritedTFRM<UNITNAME>
 end
 ")
 
-(define file-code-template  
+(define file-code-template ;3 placeholders
 "
 unit <UNITNAME>;
 interface
@@ -36,9 +36,11 @@ uses
   uniGUIClasses, uniGUIRegClasses, uniGUIForm;
 type
   TFRM<UNITNAME> = class(TUniForm)
-    procedure UniFormCreate(Sender: TObject);
-~a // components
-~a // procedures
+// components
+~a
+// procedures
+~a 
+  procedure UniFormCreate(Sender: TObject);
   private
   public
   end;
@@ -51,33 +53,35 @@ function FRM<UNITNAME> : T<UNITNAME>;
 begin
   Result := T<UNITNAME>(UniMainModule.GetFormInstance(T<UNITNAME>))
 end;
-~a // mount
+// mount
+~a 
 end.
 ")
 
-(define on-create-picker-def-template
+(define on-create-picker-def-template ;1 placeholders
 "
 procedure TFRM~a.onCreate~a(sender:TObject);
 "
 )
 
-(define on-create-picker-impl-template
+(define on-create-picker-impl-template ;1 placeholders
 "
 procedure TFRM~a.onCreate~a(sender:TObject);
-var i: integer;
 begin
   _PreparaDataset(uniConsulta,'query');
   while not uniConsulta.Eof do begin
-    Combo.Items.Add(Q.Fields.Fields[0].AsString);
+    Combo.Items.Add(uniConsulta.Fields.Fields[0].AsString);
     uniConsulta.Next;
   end;
   uniConsulta.Close;
 end;
 "
-)(define (prepare-template template unit-name)
+)
+
+(define (prepare-template template unit-name)
     (string-replace template "<UNITNAME>" unit-name))
 
-(struct <field> (label input-type source order options constraints))
+(struct <field> (label input-type source order options))
 
 (struct <form> ( unit-name
                  title
@@ -101,7 +105,7 @@ end;
 
 (define (field->proc-defs field)
   (match field
-         [(<field> label input-type source order options constraints)
+         [(<field> label input-type source order options)
             (match input-type
                    ['PICK-S  (format on-create-picker-def-template)]
                    [_ ""])]
@@ -109,7 +113,7 @@ end;
 
 (define (field->proc-impls field)
   (match field
-         [(<field> label input-type source order options constraints)
+         [(<field> label input-type source order options)
             (match input-type
                    ['PICK-S (format on-create-picker-impl-template)]
                    [_ ""])]
@@ -117,7 +121,7 @@ end;
 
 (define (field->components field)
   (match field
-     [(<field> label input-type source order options constraints)
+     [(<field> label input-type source order options)
       (~a #:separator "\n" 
           (format "    uniLabel~a: TUniLabel;" source)
           (match input-type
@@ -130,7 +134,7 @@ end;
 
 (define (field->design field)
   (match field
-     [(<field> label input-type source order options constraints)
+     [(<field> label input-type source order options)
       (~a #:separator "\n" 
           (format "    inherited uniLabel~a: TUniLabel" source)
           (label-position order)  
@@ -147,8 +151,8 @@ end;
           "end")]))
 
 ; FIELD CONSTRUCTOR
-(define (mk-<field> label input-type source order [options null] [constraints null])
-    (<field> label input-type source order options constraints))
+(define (mk-<field> label input-type source order [options null])
+    (<field> label input-type source order options))
 
 ; EXAMPLE STRUCTURE
 (define informacion-para-efectuar-liquidacion
@@ -161,12 +165,14 @@ end;
                   (mk-<field> "Ingresos Netos"      'CASH   'LIQ-ING     5 ))))
 
 (define (mk-file-code form)
+  (define (stringify f)
+     (apply ~a #:separator "\n" f))
   (match form
     [(<form> unit-name title fields)
       (define template_ (prepare-template file-code-template unit-name))
-      (format template_ (apply ~a #:separator "\n" `(,@(map field->components fields)))
-                        (apply ~a #:separator "\n" `(,@(map field->proc-defs  fields)))
-                        (apply ~a #:separator "\n" `(,@(map field->proc-impls fields))))]
+      (format template_ (stringify `(,@(map field->components fields)))
+                        (stringify `(,@(map field->proc-defs  fields)))
+                        (stringify `(,@(map field->proc-impls fields))))]
     [_ (raise "wrong pattern")]))
 
 (define (mk-file-design form)
