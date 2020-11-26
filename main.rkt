@@ -5,6 +5,8 @@
 
 (define input-types (list 'STR 'INT 'CASH 'DATE 'PICK-F 'PICK-S))
 
+; <UNITNAME> must be replaced before using the returned template
+
 (define file-design-template
 "
 inheritedTFRM<UNITNAME>
@@ -24,7 +26,7 @@ inheritedTFRM<UNITNAME>
 end
 ")
 
-(define file-code-template ; <UNITNAME> must be replaced before using the returned template
+(define file-code-template  
 "
 unit <UNITNAME>;
 interface
@@ -35,7 +37,8 @@ uses
 type
   TFRM<UNITNAME> = class(TUniForm)
     procedure UniFormCreate(Sender: TObject);
-~a
+~a // components
+~a // procedures
   private
   public
   end;
@@ -48,17 +51,31 @@ function FRM<UNITNAME> : T<UNITNAME>;
 begin
   Result := T<UNITNAME>(UniMainModule.GetFormInstance(T<UNITNAME>))
 end;
-~a
+~a // mount
 end.
 ")
 
+(define on-create-picker-def-template
+"
+procedure TFRM~a.onCreate~a(sender:TObject);
+"
+)
 
-(define (prepare-template template unit-name)
+(define on-create-picker-impl-template
+"
+procedure TFRM~a.onCreate~a(sender:TObject);
+var i: integer;
+begin
+  _PreparaDataset(uniConsulta,'query');
+  while not uniConsulta.Eof do begin
+    Combo.Items.Add(Q.Fields.Fields[0].AsString);
+    uniConsulta.Next;
+  end;
+  uniConsulta.Close;
+end;
+"
+)(define (prepare-template template unit-name)
     (string-replace template "<UNITNAME>" unit-name))
-
-(define (mk-file-design form)
-    (define template_ (prepare-template file-design-template (<form>-title form)))
-    (raise "TODO"))
 
 (struct <field> (label input-type source order options constraints))
 
@@ -66,20 +83,39 @@ end.
                  title
                  fields ))
 
+(define (label-position o)
+  (~a #:separator "\n"
+   (format "Left = ~a" 30)
+  (format "Top = ~a" (* o 100))))
+
 (define (field-position o)
   (~a #:separator "\n"
    (format "Left = ~a" 100)
    (format "Top = ~a" (* o 100))))
 
-(define (label-position o)
-  (~a #:separator "\n"
-   (format "Left = ~a" 100)
-   (format "Top = ~a" (* o 100))))
-
 (define (field-properties field)
-  "TODO")
+  (define on-create (format "onCreate = ~create;"))
+  (~a "una cosa"
+      "otra cosa"))
+; bind on create event to fill the select fields
 
-(define (field->code field)
+(define (field->proc-defs field)
+  (match field
+         [(<field> label input-type source order options constraints)
+            (match input-type
+                   ['PICK-S  (format on-create-picker-def-template)]
+                   [_ ""])]
+         [_ (raise "wrong pattern")]))
+
+(define (field->proc-impls field)
+  (match field
+         [(<field> label input-type source order options constraints)
+            (match input-type
+                   ['PICK-S (format on-create-picker-impl-template)]
+                   [_ ""])]
+         [_ (raise "wrong pattern")]))
+
+(define (field->components field)
   (match field
      [(<field> label input-type source order options constraints)
       (~a #:separator "\n" 
@@ -110,12 +146,11 @@ end.
           (field-properties field)
           "end")]))
 
+; FIELD CONSTRUCTOR
 (define (mk-<field> label input-type source order [options null] [constraints null])
     (<field> label input-type source order options constraints))
 
-; add contract to make options mandatory if pick fixed is chosed
-; options can be a select statement that determines the posible values a select can take
-
+; EXAMPLE STRUCTURE
 (define informacion-para-efectuar-liquidacion
     (<form> "INFORMACION_LIQUIDACION"
             "informacion para efectuar liquidacion" 
@@ -125,14 +160,19 @@ end.
                   (mk-<field> "Ingresos Fuera Mun"  'CASH   'LIQ-ING-EXT 4 )
                   (mk-<field> "Ingresos Netos"      'CASH   'LIQ-ING     5 ))))
 
-; the most important thing is the datasource of the liquidation, there the checks must be very precise
-                
 (define (mk-file-code form)
   (match form
     [(<form> unit-name title fields)
-        (define template_ (prepare-template file-code-template unit-name))
-        (format template_ (apply ~a #:separator "\n" `(,@(map field->code fields))) "//write functions here nigger")]
-    [_ (raise "wrong pattern boy")]))
+      (define template_ (prepare-template file-code-template unit-name))
+      (format template_ (apply ~a #:separator "\n" `(,@(map field->components fields)))
+                        (apply ~a #:separator "\n" `(,@(map field->proc-defs  fields)))
+                        (apply ~a #:separator "\n" `(,@(map field->proc-impls fields))))]
+    [_ (raise "wrong pattern")]))
 
-; (pretty-display (field->code (car (<form>-fields informacion-para-efectuar-liquidacion))))
-; (pretty-display (mk-file-code informacion-para-efectuar-liquidacion))
+(define (mk-file-design form)
+  (match form
+    [(<form> unit-name title fields)
+     (define template_ (prepare-template file-design-template unit-name))
+     (format template_ title "components")
+     (raise "TODO")]
+    [_ (raise "wrong pattern")]))

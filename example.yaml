@@ -1,2 +1,21 @@
-da:
-  asdasd
+empresa/establecimiento_comercial:
+  -nit: {}
+  -nombre_del_establecimiento: {}
+  -direccion: {}
+  -telefono: {}
+
+representante_legal:
+  -nit: {}
+  -apellidos: {}
+  -nombres: {}
+  -telefonos: {}
+  -correo_electronico: {}
+
+informacion_para_efectuar_liquidacion:
+  -vigencia: {datepick}
+  -actividad_economica: {picksource}
+  -ingrersos_brutos: {}
+  -ingresos_fuera_del_municipio: {}
+  -ingresos_netos: {}
+  
+
